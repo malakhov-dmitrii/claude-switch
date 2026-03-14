@@ -26,7 +26,7 @@ _claude-switch() {
       case "$words[1]" in
         use|switch|delete|rm|remove)
           if [[ -d "$profiles_dir" ]]; then
-            profiles=("${(@f)$(ls "$profiles_dir"/*.json 2>/dev/null | xargs -I{} basename {} .json)}")
+            profiles=("${(@f)$(for f in "$profiles_dir"/*.json; do [[ -f "$f" ]] && basename "$f" .json; done)}")
             [[ ${#profiles} -gt 0 ]] && _describe -t profiles 'profile' profiles
           fi
           ;;

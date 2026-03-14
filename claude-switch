@@ -97,6 +97,11 @@ ensure_profiles_dir() {
   chmod 700 "$PROFILES_DIR"
 }
 
+validate_name() {
+  [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]] \
+    || die "profile name must contain only letters, numbers, hyphens, and underscores"
+}
+
 profile_path() {
   echo "$PROFILES_DIR/$1.json"
 }
@@ -156,6 +161,7 @@ cmd_status() {
 
 cmd_save() {
   local name="${1:?$(die "usage: claude-switch save <name>")}"
+  validate_name "$name"
   ensure_profiles_dir
 
   local creds
@@ -177,6 +183,7 @@ cmd_save() {
 
 cmd_use() {
   local name="${1:?$(die "usage: claude-switch use <name>")}"
+  validate_name "$name"
 
   profile_exists "$name" || {
     die "profile '$name' not found (available: $(list_profiles | tr '\n' ' ' || echo 'none'))"
@@ -229,6 +236,7 @@ cmd_list() {
 
 cmd_delete() {
   local name="${1:?$(die "usage: claude-switch delete <name>")}"
+  validate_name "$name"
 
   profile_exists "$name" || die "profile '$name' not found"
 

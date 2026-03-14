@@ -133,13 +133,13 @@ Then restart your shell. Tab-completion works for commands and profile names.
 Not yet — Claude Code on Linux stores credentials differently. PRs welcome.
 
 **Is this safe?**
-Your credentials never leave your machine. Profiles are stored with restricted file permissions. The tool only reads/writes the macOS Keychain entry that Claude Code itself uses.
+Your credentials never leave your machine. Profiles are stored with restricted file permissions (`600`). The tool only reads/writes the macOS Keychain entry that Claude Code itself uses. Note: when writing credentials back to Keychain, the token is briefly visible as a process argument (a limitation of the macOS `security` CLI).
 
 **Do I need to re-authenticate after switching?**
 No. Each profile stores the full OAuth tokens. Switching is instant — just restart Claude Code.
 
 **What happens to my MCP server tokens (Slack, GitHub, etc.)?**
-MCP OAuth tokens are stored alongside your Claude credentials. When you switch profiles, your MCP tokens switch too. You may need to re-auth MCP servers if you set them up on only one account.
+MCP OAuth tokens appear to be stored in the same Keychain entry as your Claude credentials. When you switch profiles, your MCP tokens likely switch too. You may need to re-auth MCP servers if you set them up on only one account.
 
 ## License
 
