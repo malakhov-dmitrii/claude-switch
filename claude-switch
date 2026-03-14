@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+# claude-switch — switch between Claude Code subscription accounts
+# https://github.com/malakhov-dmitrii/claude-switch
+
+set -euo pipefail
+
+VERSION="1.0.0"
+PROFILES_DIR="${CLAUDE_SWITCH_DIR:-$HOME/.claude/profiles}"
+KEYCHAIN_SERVICE="Claude Code-credentials"
+KEYCHAIN_ACCOUNT="${CLAUDE_SWITCH_KEYCHAIN_ACCOUNT:-$(whoami)}"
+
+# Colors (disabled if not a terminal or NO_COLOR is set)
+if [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" ]]; then
+  BOLD='\033[1m'
+  DIM='\033[2m'
+  GREEN='\033[32m'
+  YELLOW='\033[33m'
+  RED='\033[31m'
+  CYAN='\033[36m'
+  RESET='\033[0m'
+else
+  BOLD='' DIM='' GREEN='' YELLOW='' RED='' CYAN='' RESET=''
+fi
+
+die()  { printf "${RED}error:${RESET} %s\n" "$*" >&2; exit 1; }
+info() { printf "${GREEN}>>>${RESET} %s\n" "$*"; }
+warn() { printf "${YELLOW}warning:${RESET} %s\n" "$*" >&2; }
+dim()  { printf "${DIM}%s${RESET}\n" "$*"; }
+
+usage() {
+  cat <<EOF
+${BOLD}claude-switch${RESET} ${DIM}v${VERSION}${RESET} — switch between Claude Code accounts
+
+${BOLD}USAGE${RESET}
+    claude-switch <command> [args]
+
+${BOLD}COMMANDS${RESET}
+    ${CYAN}status${RESET}            Show active account and matched profile
+    ${CYAN}save${RESET} <name>       Save current credentials as a named profile
+    ${CYAN}use${RESET} <name>        Switch to a saved profile
+    ${CYAN}list${RESET}              List all saved profiles
+    ${CYAN}delete${RESET} <name>     Delete a saved profile
+
+${BOLD}OPTIONS${RESET}
+    -h, --help        Show this help
+    -v, --version     Show version
+
+${BOLD}QUICK START${RESET}
+    ${DIM}# Save your first account${RESET}
+    claude-switch save personal
+
+    ${DIM}# Log in to second account, then save it${RESET}
+    claude auth logout && claude auth login
+    claude-switch save work
+
+    ${DIM}# Switch anytime${RESET}
+    claude-switch use work
+    claude-switch use personal
+
+${BOLD}HOW IT WORKS${RESET}
+    Saves and restores Claude Code OAuth credentials from the macOS
+    Keychain. Each profile is a snapshot of your authentication state.
+    After switching, restart Claude Code to pick up the new credentials.
+
+${BOLD}ENVIRONMENT${RESET}
+    CLAUDE_SWITCH_DIR               Profile storage dir (default: ~/.claude/profiles)
+    CLAUDE_SWITCH_KEYCHAIN_ACCOUNT  Keychain account name (default: \$(whoami))
+    NO_COLOR                        Disable colored output
+EOF
+}
+
+# ── Keychain helpers ──────────────────────────────────────────────────
+
+get_creds() {
+  security find-generic-password \
+    -s "$KEYCHAIN_SERVICE" \
+    -a "$KEYCHAIN_ACCOUNT" \
+    -w 2>/dev/null || return 1
+}
+
+set_creds() {
+  local creds="$1"
+  security delete-generic-password \
+    -s "$KEYCHAIN_SERVICE" \
+    -a "$KEYCHAIN_ACCOUNT" >/dev/null 2>&1 || true
+  security add-generic-password \
+    -s "$KEYCHAIN_SERVICE" \
+    -a "$KEYCHAIN_ACCOUNT" \
+    -w "$creds" 2>/dev/null \
+    || die "failed to write credentials to Keychain"
+}
+
+# ── Profile helpers ───────────────────────────────────────────────────
+
+ensure_profiles_dir() {
+  mkdir -p "$PROFILES_DIR"
+  chmod 700 "$PROFILES_DIR"
+}
+
+profile_path() {
+  echo "$PROFILES_DIR/$1.json"
+}
+
+profile_exists() {
+  [[ -f "$(profile_path "$1")" ]]
+}
+
+list_profiles() {
+  local found=0
+  for f in "$PROFILES_DIR"/*.json; do
+    [[ -f "$f" ]] || continue
+    found=1
+    basename "$f" .json
+  done
+  return $(( found == 0 ))
+}
+
+extract_field() {
+  # Extract a JSON field value from a one-line or pretty-printed JSON string
+  local json="$1" field="$2"
+  echo "$json" | sed -n "s/.*\"${field}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1
+}
+
+# ── Commands ──────────────────────────────────────────────────────────
+
+cmd_status() {
+  local output
+  output=$(claude auth status --json 2>/dev/null || claude auth status 2>/dev/null || true)
+
+  if echo "$output" | grep -q '"email"'; then
+    local email sub
+    email=$(extract_field "$output" "email")
+    sub=$(extract_field "$output" "subscriptionType")
+    printf "${BOLD}%s${RESET} ${DIM}(%s)${RESET}\n" "$email" "${sub:-unknown}"
+  else
+    echo "$output"
+  fi
+
+  # Match against saved profiles
+  local current
+  current=$(get_creds 2>/dev/null || echo "")
+  if [[ -n "$current" ]]; then
+    for f in "$PROFILES_DIR"/*.json; do
+      [[ -f "$f" ]] || continue
+      local name saved
+      name=$(basename "$f" .json)
+      saved=$(cat "$f")
+      if [[ "$current" = "$saved" ]]; then
+        printf "${CYAN}profile:${RESET} %s\n" "$name"
+        return
+      fi
+    done
+    printf "${YELLOW}profile:${RESET} (unsaved)\n"
+  fi
+}
+
+cmd_save() {
+  local name="${1:?$(die "usage: claude-switch save <name>")}"
+  ensure_profiles_dir
+
+  local creds
+  creds=$(get_creds) || die "no credentials found in Keychain — are you logged in?"
+
+  local file
+  file=$(profile_path "$name")
+
+  if [[ -f "$file" ]]; then
+    warn "overwriting existing profile '$name'"
+  fi
+
+  printf '%s' "$creds" > "$file"
+  chmod 600 "$file"
+
+  info "saved current credentials as '${BOLD}$name${RESET}'"
+  cmd_status
+}
+
+cmd_use() {
+  local name="${1:?$(die "usage: claude-switch use <name>")}"
+
+  profile_exists "$name" || {
+    die "profile '$name' not found (available: $(list_profiles | tr '\n' ' ' || echo 'none'))"
+  }
+
+  local creds
+  creds=$(cat "$(profile_path "$name")")
+  set_creds "$creds"
+
+  info "switched to '${BOLD}$name${RESET}'"
+  dim "restart Claude Code to use the new credentials"
+  echo ""
+  cmd_status
+}
+
+cmd_list() {
+  ensure_profiles_dir
+
+  local current
+  current=$(get_creds 2>/dev/null || echo "")
+  local found=0
+
+  for f in "$PROFILES_DIR"/*.json; do
+    [[ -f "$f" ]] || continue
+    found=1
+    local name sub tier marker=""
+    name=$(basename "$f" .json)
+    sub=$(extract_field "$(cat "$f")" "subscriptionType")
+    tier=$(extract_field "$(cat "$f")" "rateLimitTier")
+
+    # Mark active profile
+    if [[ -n "$current" ]]; then
+      local saved
+      saved=$(cat "$f")
+      if [[ "$current" = "$saved" ]]; then
+        marker="${GREEN} *${RESET}"
+      fi
+    fi
+
+    printf "  ${BOLD}%-16s${RESET} ${DIM}%s${RESET}%b\n" \
+      "$name" \
+      "${sub:-unknown}${tier:+ / $tier}" \
+      "$marker"
+  done
+
+  if [[ "$found" -eq 0 ]]; then
+    dim "  no saved profiles — run 'claude-switch save <name>' to create one"
+  fi
+}
+
+cmd_delete() {
+  local name="${1:?$(die "usage: claude-switch delete <name>")}"
+
+  profile_exists "$name" || die "profile '$name' not found"
+
+  rm "$(profile_path "$name")"
+  info "deleted profile '$name'"
+}
+
+# ── Main ──────────────────────────────────────────────────────────────
+
+ensure_profiles_dir
+
+case "${1:-status}" in
+  status)           cmd_status ;;
+  save)             cmd_save "${2:-}" ;;
+  use|switch)       cmd_use "${2:-}" ;;
+  list|ls)          cmd_list ;;
+  delete|rm|remove) cmd_delete "${2:-}" ;;
+  -v|--version)     echo "claude-switch $VERSION" ;;
+  -h|--help|help)   usage ;;
+  *)
+    die "unknown command '$1' — run 'claude-switch --help' for usage"
+    ;;
+esac

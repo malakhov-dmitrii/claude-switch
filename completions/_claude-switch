@@ -1,0 +1,38 @@
+#compdef claude-switch
+
+_claude-switch() {
+  local -a commands
+  commands=(
+    'status:Show active account and matched profile'
+    'save:Save current credentials as a named profile'
+    'use:Switch to a saved profile'
+    'list:List all saved profiles'
+    'delete:Delete a saved profile'
+    'help:Show help'
+  )
+
+  local -a profiles
+  local profiles_dir="${CLAUDE_SWITCH_DIR:-$HOME/.claude/profiles}"
+
+  _arguments -C \
+    '1:command:->cmds' \
+    '*::arg:->args'
+
+  case "$state" in
+    cmds)
+      _describe -t commands 'claude-switch command' commands
+      ;;
+    args)
+      case "$words[1]" in
+        use|switch|delete|rm|remove)
+          if [[ -d "$profiles_dir" ]]; then
+            profiles=("${(@f)$(ls "$profiles_dir"/*.json 2>/dev/null | xargs -I{} basename {} .json)}")
+            [[ ${#profiles} -gt 0 ]] && _describe -t profiles 'profile' profiles
+          fi
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_claude-switch "$@"
