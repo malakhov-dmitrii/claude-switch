@@ -7,6 +7,19 @@ If you have multiple Claude Max subscriptions (e.g. personal + work), `claude-sw
 [![CI](https://github.com/malakhov-dmitrii/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/claude-switch/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+```
+❯ claude-switch list
+  personal         max / default_claude_max_20x *
+  work             max / default_claude_max_20x
+
+❯ claude-switch use work
+>>> switched to 'work'
+    restart Claude Code to use the new credentials
+
+d.malakhov@company.com (max)
+profile: work
+```
+
 ## Why?
 
 Claude Code's Max subscription has usage limits that reset periodically. If you hit the cap on one account, you can switch to another and keep working. Without this tool, switching means logging out, re-authenticating through the browser, and hoping you remember which account is which. `claude-switch` makes it a one-liner.
