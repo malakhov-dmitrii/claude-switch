@@ -7,18 +7,9 @@ If you have multiple Claude Max subscriptions (e.g. personal + work), `claude-sw
 [![CI](https://github.com/malakhov-dmitrii/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/claude-switch/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-```
-❯ claude-switch list
-  personal         max / default_claude_max_20x *
-  work             max / default_claude_max_20x
-
-❯ claude-switch use work
->>> switched to 'work'
-    restart Claude Code to use the new credentials
-
-d.malakhov@company.com (max)
-profile: work
-```
+<p align="center">
+  <img src="demo.gif" alt="claude-switch demo" width="600">
+</p>
 
 ## Why?
 
