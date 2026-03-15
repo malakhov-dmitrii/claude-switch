@@ -1,20 +1,20 @@
 # Title
 
-Built a tiny tool to switch between Claude Max accounts in 1 second when you hit the usage cap
+I built a CLI tool with Claude Code to switch between Claude Max accounts when you hit the usage cap
 
 ---
 
 # Body
 
-You know that moment when you're mid-refactor, Claude is on a roll, and then — rate limit. Usage cap. Done for the next few hours.
+You know that moment when you're mid-refactor, Claude is on a roll, and then rate limit. Usage cap. Done for the next few hours.
 
-I have two Max accounts for exactly this reason, but switching between them was annoying: log out, open browser, log back in, wait for auth to complete. Killed the flow every time.
+I have two Max accounts for exactly this reason, but switching between them was annoying. Log out, open browser, log back in, wait for auth to complete. Killed the flow every time.
 
-So I built a thing.
+So I used Claude Code to build a fix. Kind of ironic that the tool hitting my limits helped me build the workaround. The whole thing is about 250 lines of bash, written and shipped in one Claude Code session.
 
-**claude-switch** is a tiny bash CLI that saves and restores Claude Code credentials in your macOS Keychain. That's basically it. When account A hits the cap, you switch to account B in one command — no browser, no re-auth, no context loss.
+**claude-switch** saves and restores Claude Code credentials from your macOS Keychain. When account A hits the cap, you switch to account B in one command. No re-auth through the browser.
 
-It works by reading/writing the auth tokens Claude Code stores in the system Keychain, so there's nothing clever happening under the hood. Just credential management you'd do manually, automated.
+Under the hood it just reads/writes the auth tokens Claude Code stores in the system Keychain. Nothing clever, just the same credential swap you'd do manually.
 
 ```bash
 # First-time setup: save both accounts
@@ -25,7 +25,7 @@ claude-switch save personal
 claude-switch use personal
 ```
 
-That's the whole API. It also lists saved accounts and has shell completions if you want them.
+That's the whole thing. It also lists saved accounts and has zsh completions.
 
 Repo: https://github.com/malakhov-dmitrii/claude-switch
 
@@ -34,4 +34,4 @@ One-liner install:
 curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/install.sh | bash
 ```
 
-Curious if others have run into the same friction. Feedback welcome — especially if it breaks on your setup, since I've only tested it on my machine so far.
+Free, open source (MIT), 250 lines of bash. Curious if others have run into the same problem. Feedback welcome, especially if it breaks on your setup since I've only tested it on my machine so far.

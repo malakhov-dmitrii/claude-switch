@@ -1,4 +1,4 @@
-# Twitter/X Thread — claude-switch
+# Twitter/X Thread
 
 ---
 
@@ -8,21 +8,18 @@ you're deep in a refactor, claude code hits its limit, and now you have to brows
 
 i built a fix
 
-🧵
-
 ---
 
 **Tweet 2/5**
 
-`claude-switch` — swap between Claude Code Max accounts in one command by swapping macOS Keychain credentials
+claude-switch: swap between Claude Code Max accounts in one command by swapping macOS Keychain credentials
 
 ```bash
 claude-switch use work
 # >>> switched to 'work'
-#     restart Claude Code to use the new credentials
 ```
 
-no browser. no re-auth. just keep coding.
+no browser, no re-auth. just keep going.
 
 ---
 
@@ -30,18 +27,18 @@ no browser. no re-auth. just keep coding.
 
 how it works:
 
-Claude Code stores OAuth tokens in macOS Keychain under `Claude Code-credentials`
+Claude Code stores OAuth tokens in macOS Keychain under "Claude Code-credentials"
 
-`claude-switch save <name>` snapshots that entry to `~/.claude/profiles/<name>.json`
+`claude-switch save <name>` snapshots that entry
 `claude-switch use <name>` writes it back
 
-credentials never leave your machine. profiles are `600`. that's it.
+credentials stay on your machine. profiles are chmod 600. that's it.
 
 ---
 
 **Tweet 4/5**
 
-install in one line:
+install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/install.sh | bash
@@ -54,7 +51,7 @@ claude-switch save work
 claude-switch use work  # instant
 ```
 
-→ https://github.com/malakhov-dmitrii/claude-switch
+https://github.com/malakhov-dmitrii/claude-switch
 
 #ClaudeCode @AnthropicAI @alexalbert__
 
@@ -62,8 +59,8 @@ claude-switch use work  # instant
 
 **Tweet 5/5**
 
-macOS only for now — Claude Code stores creds differently on Linux
+macOS only for now. Claude Code stores creds differently on Linux.
 
-if you're on Linux and want to add support, PRs are very welcome
+if you're on Linux and want to add support, PRs are welcome.
 
-curious if others are running multiple Max accounts this way — what's your workflow?
+anyone else running multiple Max accounts? curious what your workflow looks like.
