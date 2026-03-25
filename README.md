@@ -1,8 +1,8 @@
 # claude-switch
 
-Switch between Claude Code subscription accounts in seconds.
+Switch between Claude Code subscription accounts and configuration profiles in seconds.
 
-If you have multiple Claude Max subscriptions (e.g. personal + work), `claude-switch` lets you swap between them without re-authenticating through the browser every time.
+If you have multiple Claude Max subscriptions (e.g. personal + work), `claude-switch` lets you swap between them without re-authenticating through the browser every time. You can also snapshot and restore your entire Claude Code configuration — settings, hooks, plugins, commands, skills, and more.
 
 [![CI](https://github.com/malakhov-dmitrii/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/claude-switch/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -15,7 +15,11 @@ If you have multiple Claude Max subscriptions (e.g. personal + work), `claude-sw
 
 Claude Code's Max subscription has usage limits that reset periodically. If you hit the cap on one account, you can switch to another and keep working. Without this tool, switching means logging out, re-authenticating through the browser, and hoping you remember which account is which. `claude-switch` makes it a one-liner.
 
+Beyond accounts, if you experiment with different Claude Code setups — different hooks, plugins, MCP servers — `claude-switch profile` lets you save and restore complete configurations without fear of losing your working setup.
+
 ## Install
+
+Requires [Bun](https://bun.sh/) and macOS.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/install.sh | bash
@@ -24,16 +28,16 @@ curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main
 Or manually:
 
 ```bash
-# Download the script
-curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/claude-switch \
-  -o ~/.claude/claude-switch
-chmod +x ~/.claude/claude-switch
+git clone https://github.com/malakhov-dmitrii/claude-switch.git ~/.claude/claude-switch
+cd ~/.claude/claude-switch && bun install
 
-# Add an alias (optional)
-echo 'alias claude-switch="$HOME/.claude/claude-switch"' >> ~/.zshrc
+# Add an alias
+echo 'alias claude-switch="bun run $HOME/.claude/claude-switch/src/index.ts"' >> ~/.zshrc
 ```
 
 ## Quick start
+
+### Account switching
 
 ```bash
 # 1. Save your current account
@@ -52,7 +56,23 @@ claude-switch use personal
 
 After switching, restart Claude Code to pick up the new credentials.
 
+### Configuration profiles
+
+```bash
+# Save your entire Claude Code setup
+claude-switch profile save work-setup
+
+# Experiment freely with new plugins, hooks, etc.
+# Then switch back when needed
+claude-switch profile use work-setup
+
+# Clone a profile to try variations safely
+claude-switch profile clone work-setup experiment --only hooks,settings
+```
+
 ## Usage
+
+### Account commands
 
 ```
 claude-switch                  # show current account (default)
@@ -63,6 +83,46 @@ claude-switch list             # list all profiles (* = active)
 claude-switch delete <name>    # delete a profile
 claude-switch --help           # full help
 claude-switch --version        # version info
+```
+
+### Profile commands
+
+```
+claude-switch profile save <name>                  # snapshot current config
+claude-switch profile use <name>                   # restore a config (auto-saves current first)
+claude-switch profile list                         # list all config profiles
+claude-switch profile delete <name>                # delete a config profile
+claude-switch profile show <name>                  # show profile details and sizes
+claude-switch profile clone <src> <dst>            # clone with interactive picker
+claude-switch profile clone <src> <dst> --all      # clone everything
+claude-switch profile clone <src> <dst> --only X,Y # clone specific components
+claude-switch profile bind <profile> <account>     # bind config profile to account
+claude-switch profile unbind <profile>             # remove account binding
+```
+
+### What's included in a profile
+
+| Component | What it covers |
+|-----------|---------------|
+| `settings` | `settings.json`, `settings.local.json` |
+| `hooks` | `hooks/` directory |
+| `plugins` | `plugins/` directory (excluding cache) |
+| `commands` | `commands/` directory |
+| `skills` | `skills/` directory |
+| `md_files` | `*.md` files at `~/.claude/` root (CLAUDE.md, etc.) |
+| `mcp` | `mcp.json` |
+
+### Safety
+
+Before switching profiles, `claude-switch` automatically saves your current config as a timestamped snapshot (e.g., `_auto_20260325_143000`). The 5 most recent snapshots are kept. You can restore any snapshot with `claude-switch profile use _auto_20260325_143000`.
+
+### Account binding
+
+You can bind a config profile to an account profile so switching configs also switches credentials:
+
+```bash
+claude-switch profile bind work-setup work
+claude-switch profile use work-setup  # switches both config AND credentials
 ```
 
 ### Example output
@@ -87,7 +147,8 @@ Claude Code stores OAuth credentials in the **macOS Keychain** under the service
 - **`save`** reads the current keychain entry and writes it to `~/.claude/profiles/<name>.json`
 - **`use`** reads a saved profile and writes it back to the keychain
 - Profiles are stored with `600` permissions (owner-read/write only)
-- The profiles directory (`~/.claude/profiles/`) has `700` permissions
+
+Configuration profiles are stored as directory snapshots under `~/.claude/config-profiles/<name>/`, each containing a `manifest.json` and copies of the relevant config files/directories.
 
 No credentials are sent anywhere. Everything stays on your machine.
 
@@ -102,21 +163,22 @@ cp completions/_claude-switch /usr/local/share/zsh/site-functions/
 cp completions/_claude-switch $(brew --prefix)/share/zsh/site-functions/
 ```
 
-Then restart your shell. Tab-completion works for commands and profile names.
+Then restart your shell. Tab-completion works for commands, profile names, and config profile names.
 
 ## Configuration
 
 | Environment variable | Default | Description |
 |---|---|---|
-| `CLAUDE_SWITCH_DIR` | `~/.claude/profiles` | Where profiles are stored |
+| `CLAUDE_SWITCH_DIR` | `~/.claude/profiles` | Where account profiles are stored |
+| `CLAUDE_SWITCH_CONFIG_DIR` | `~/.claude/config-profiles` | Where config profiles are stored |
 | `CLAUDE_SWITCH_KEYCHAIN_ACCOUNT` | `$(whoami)` | Keychain account name |
 | `NO_COLOR` | *(unset)* | Disable colored output |
 
 ## Requirements
 
 - macOS (uses Keychain for credential storage)
+- [Bun](https://bun.sh/) runtime
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed and authenticated
-- `bash` 3.2+ (ships with macOS)
 
 ## FAQ
 
@@ -131,6 +193,9 @@ No. Each profile stores the full OAuth tokens. Switching is instant — just res
 
 **What happens to my MCP server tokens (Slack, GitHub, etc.)?**
 MCP OAuth tokens appear to be stored in the same Keychain entry as your Claude credentials. When you switch profiles, your MCP tokens likely switch too. You may need to re-auth MCP servers if you set them up on only one account.
+
+**What about the `md_files` restore behavior?**
+When you switch to a config profile, ALL `*.md` files in `~/.claude/` are replaced with the profile's snapshot. Files created after the profile was saved are removed — but they exist in the auto-snapshot taken before the switch. This is by design: a profile represents a complete configuration state.
 
 ## License
 

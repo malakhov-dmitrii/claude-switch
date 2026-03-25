@@ -1,0 +1,15 @@
+{
+  "name": "claude-switch",
+  "version": "2.0.0",
+  "type": "module",
+  "bin": { "claude-switch": "src/index.ts" },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/bun": "latest"
+  }
+}

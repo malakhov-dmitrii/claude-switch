@@ -8,11 +8,12 @@ _claude-switch() {
     'use:Switch to a saved profile'
     'list:List all saved profiles'
     'delete:Delete a saved profile'
+    'profile:Manage configuration profiles'
     'help:Show help'
   )
 
-  local -a profiles
   local profiles_dir="${CLAUDE_SWITCH_DIR:-$HOME/.claude/profiles}"
+  local config_profiles_dir="${CLAUDE_SWITCH_CONFIG_DIR:-$HOME/.claude/config-profiles}"
 
   _arguments -C \
     '1:command:->cmds' \
@@ -26,9 +27,58 @@ _claude-switch() {
       case "$words[1]" in
         use|switch|delete|rm|remove)
           if [[ -d "$profiles_dir" ]]; then
+            local -a profiles
             profiles=("${(@f)$(for f in "$profiles_dir"/*.json; do [[ -f "$f" ]] && basename "$f" .json; done)}")
             [[ ${#profiles} -gt 0 ]] && _describe -t profiles 'profile' profiles
           fi
+          ;;
+        profile|config)
+          local -a profile_commands
+          profile_commands=(
+            'save:Save current config as a named profile'
+            'use:Switch to a saved config profile'
+            'list:List all config profiles'
+            'delete:Delete a config profile'
+            'clone:Clone a config profile'
+            'show:Show profile details'
+            'bind:Bind profile to an account'
+            'unbind:Remove account binding'
+            'help:Show profile help'
+          )
+
+          _arguments -C \
+            '1:profile command:->profile_cmds' \
+            '*::profile arg:->profile_args'
+
+          case "$state" in
+            profile_cmds)
+              _describe -t profile_commands 'profile command' profile_commands
+              ;;
+            profile_args)
+              case "$words[1]" in
+                use|switch|delete|rm|remove|show|info|bind|unbind)
+                  if [[ -d "$config_profiles_dir" ]]; then
+                    local -a config_profiles
+                    config_profiles=("${(@f)$(for d in "$config_profiles_dir"/*/; do [[ -d "$d" ]] && [[ -f "$d/manifest.json" ]] && basename "$d"; done)}")
+                    [[ ${#config_profiles} -gt 0 ]] && _describe -t config_profiles 'config profile' config_profiles
+                  fi
+                  ;;
+                clone)
+                  if (( CURRENT == 2 )); then
+                    if [[ -d "$config_profiles_dir" ]]; then
+                      local -a config_profiles
+                      config_profiles=("${(@f)$(for d in "$config_profiles_dir"/*/; do [[ -d "$d" ]] && [[ -f "$d/manifest.json" ]] && basename "$d"; done)}")
+                      [[ ${#config_profiles} -gt 0 ]] && _describe -t config_profiles 'source profile' config_profiles
+                    fi
+                  elif (( CURRENT >= 3 )); then
+                    local -a clone_opts
+                    clone_opts=('--all:Clone all components' '--only:Clone specific components')
+                    _describe -t clone_opts 'clone option' clone_opts
+                  fi
+                  ;;
+              esac
+              ;;
+          esac
           ;;
       esac
       ;;

@@ -3,3 +3,7 @@
 *.swo
 *~
 .omc/
+.beast-plan/
+node_modules/
+bun.lock
+dist/

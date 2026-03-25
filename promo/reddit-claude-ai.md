@@ -27,11 +27,8 @@ claude-switch use personal
 
 That's the whole thing. It also lists saved accounts and has zsh completions.
 
-Repo: https://github.com/malakhov-dmitrii/claude-switch
+Free, open source (MIT), 250 lines of bash. Install instructions in the repo README.
 
-One-liner install:
-```bash
-curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/install.sh | bash
-```
+GitHub: https://github.com/malakhov-dmitrii/claude-switch
 
-Free, open source (MIT), 250 lines of bash. Curious if others have run into the same problem. Feedback welcome, especially if it breaks on your setup since I've only tested it on my machine so far.
+Curious if others have run into the same problem. Feedback welcome, especially if it breaks on your setup since I've only tested it on my machine so far.
