@@ -19,7 +19,19 @@ Beyond accounts, if you experiment with different Claude Code setups — differe
 
 ## Install
 
-Requires [Bun](https://bun.sh/) and macOS.
+Requires [Bun](https://bun.sh/). Supports macOS and Linux.
+
+**Linux prerequisite** — account switching uses the system keyring via `secret-tool`:
+```bash
+# Debian/Ubuntu
+sudo apt install libsecret-tools
+
+# Arch
+sudo pacman -S libsecret
+
+# Headless/server (no display) — use file-based storage instead:
+export CLAUDE_SWITCH_KEYCHAIN_BACKEND=file
+```
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/install.sh | bash
