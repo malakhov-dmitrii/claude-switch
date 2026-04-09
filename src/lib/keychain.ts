@@ -100,10 +100,11 @@ export function createSecretToolKeychainIO(service: string, account: string): Ke
 }
 
 export function createLinuxKeychainIO(): KeychainIO {
-  if (process.env.CLAUDE_SWITCH_KEYCHAIN_BACKEND === "file" || Bun.which("secret-tool") === null) {
-    return createFileKeychainIO();
+  if (process.env.CLAUDE_SWITCH_KEYCHAIN_BACKEND === "secret-tool") {
+    return createSecretToolKeychainIO(KEYCHAIN_SERVICE, keychainAccount());
   }
-  return createSecretToolKeychainIO(KEYCHAIN_SERVICE, keychainAccount());
+  // Claude Code on Linux stores credentials in ~/.claude/.credentials.json
+  return createFileKeychainIO(join(claudeDir(), ".credentials.json"));
 }
 
 export function createWindowsKeychainIO(): KeychainIO {

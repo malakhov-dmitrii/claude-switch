@@ -37,16 +37,10 @@ cd ~/.claude/claude-switch && bun install
 echo 'alias claude-switch="bun run $HOME/.claude/claude-switch/src/index.ts"' >> ~/.zshrc
 ```
 
-**Linux prerequisite** — account switching uses the system keyring via `secret-tool`:
+**Linux note** — credentials are read from `~/.claude/.credentials.json` (where Claude Code stores them). No extra dependencies needed. To use the system keyring (libsecret) instead:
 ```bash
-# Debian/Ubuntu
-sudo apt install libsecret-tools
-
-# Arch
-sudo pacman -S libsecret
-
-# Headless/server (no display) — use file-based storage instead:
-export CLAUDE_SWITCH_KEYCHAIN_BACKEND=file
+sudo apt install libsecret-tools  # Debian/Ubuntu
+export CLAUDE_SWITCH_KEYCHAIN_BACKEND=secret-tool
 ```
 
 **Windows** — manual install via PowerShell:
@@ -213,7 +207,7 @@ Then restart your shell. Tab-completion works for commands, profile names, and c
 ## FAQ
 
 **Does this work on Linux?**
-Yes. On Linux, credentials are stored in `~/.claude/.credentials.json`. If `secret-tool` (libsecret) is available, it can also use the system keyring. Set `CLAUDE_SWITCH_KEYCHAIN_BACKEND=file` to force the file backend.
+Yes. On Linux, credentials are read from `~/.claude/.credentials.json` (where Claude Code stores them). No extra dependencies needed. Set `CLAUDE_SWITCH_KEYCHAIN_BACKEND=secret-tool` to use libsecret instead.
 
 **Does this work on Windows?**
 Yes. On Windows, Claude Code stores credentials in `~/.claude/.credentials.json` and `claude-switch` reads/writes that file directly. File permissions rely on NTFS ACLs inherited from your user profile directory. Install Bun for Windows, then follow the PowerShell install instructions above.
