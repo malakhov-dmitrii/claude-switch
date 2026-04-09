@@ -51,7 +51,7 @@ export function copyComponentToProfile(name: ComponentName, claudeDir: string, p
       if (existsSync(join(claudeDir, "plugins"))) {
         cpSync(join(claudeDir, "plugins"), join(profileDir, "plugins"), {
           recursive: true,
-          filter: (src: string) => !src.match(/\/plugins\/cache(\/|$)/),
+          filter: (src: string) => !src.match(/[/\\]plugins[/\\]cache([/\\]|$)/),
         });
       }
       break;

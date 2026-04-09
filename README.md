@@ -19,19 +19,9 @@ Beyond accounts, if you experiment with different Claude Code setups — differe
 
 ## Install
 
-Requires [Bun](https://bun.sh/). Supports macOS and Linux.
+Requires [Bun](https://bun.sh/). Supports macOS, Linux, and Windows.
 
-**Linux prerequisite** — account switching uses the system keyring via `secret-tool`:
-```bash
-# Debian/Ubuntu
-sudo apt install libsecret-tools
-
-# Arch
-sudo pacman -S libsecret
-
-# Headless/server (no display) — use file-based storage instead:
-export CLAUDE_SWITCH_KEYCHAIN_BACKEND=file
-```
+**macOS / Linux:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/malakhov-dmitrii/claude-switch/main/install.sh | bash
@@ -46,6 +36,29 @@ cd ~/.claude/claude-switch && bun install
 # Add an alias
 echo 'alias claude-switch="bun run $HOME/.claude/claude-switch/src/index.ts"' >> ~/.zshrc
 ```
+
+**Linux prerequisite** — account switching uses the system keyring via `secret-tool`:
+```bash
+# Debian/Ubuntu
+sudo apt install libsecret-tools
+
+# Arch
+sudo pacman -S libsecret
+
+# Headless/server (no display) — use file-based storage instead:
+export CLAUDE_SWITCH_KEYCHAIN_BACKEND=file
+```
+
+**Windows** — manual install via PowerShell:
+```powershell
+git clone https://github.com/malakhov-dmitrii/claude-switch.git "$HOME\.claude\claude-switch"
+cd "$HOME\.claude\claude-switch"; bun install
+
+# Add a function to your PowerShell profile
+Add-Content $PROFILE "`nfunction claude-switch { bun run `"$HOME\.claude\claude-switch\src\index.ts`" @args }"
+```
+
+Then restart your shell.
 
 ## Quick start
 
@@ -154,11 +167,16 @@ profile: work
 
 ## How it works
 
-Claude Code stores OAuth credentials in the **macOS Keychain** under the service `Claude Code-credentials`. `claude-switch` saves and restores these credentials:
+Claude Code stores OAuth credentials differently per platform:
 
-- **`save`** reads the current keychain entry and writes it to `~/.claude/profiles/<name>.json`
-- **`use`** reads a saved profile and writes it back to the keychain
-- Profiles are stored with `600` permissions (owner-read/write only)
+- **macOS**: encrypted macOS Keychain, service `Claude Code-credentials`
+- **Linux / Windows**: `~/.claude/.credentials.json` (or `$CLAUDE_CONFIG_DIR/.credentials.json`)
+
+`claude-switch` saves and restores these credentials:
+
+- **`save`** reads the current credentials and writes them to `~/.claude/profiles/<name>.json`
+- **`use`** reads a saved profile and writes it back to the credential store
+- Profiles are stored with `600` permissions (owner-read/write only; on Windows, permissions inherit from your user profile directory)
 
 Configuration profiles are stored as directory snapshots under `~/.claude/config-profiles/<name>/`, each containing a `manifest.json` and copies of the relevant config files/directories.
 
@@ -188,17 +206,20 @@ Then restart your shell. Tab-completion works for commands, profile names, and c
 
 ## Requirements
 
-- macOS (uses Keychain for credential storage)
+- macOS, Linux, or Windows
 - [Bun](https://bun.sh/) runtime
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed and authenticated
 
 ## FAQ
 
 **Does this work on Linux?**
-Not yet — Claude Code on Linux stores credentials differently. PRs welcome.
+Yes. On Linux, credentials are stored in `~/.claude/.credentials.json`. If `secret-tool` (libsecret) is available, it can also use the system keyring. Set `CLAUDE_SWITCH_KEYCHAIN_BACKEND=file` to force the file backend.
+
+**Does this work on Windows?**
+Yes. On Windows, Claude Code stores credentials in `~/.claude/.credentials.json` and `claude-switch` reads/writes that file directly. File permissions rely on NTFS ACLs inherited from your user profile directory. Install Bun for Windows, then follow the PowerShell install instructions above.
 
 **Is this safe?**
-Your credentials never leave your machine. Profiles are stored with restricted file permissions (`600`). The tool only reads/writes the macOS Keychain entry that Claude Code itself uses. Note: when writing credentials back to Keychain, the token is briefly visible as a process argument (a limitation of the macOS `security` CLI).
+Your credentials never leave your machine. Profiles are stored with restricted file permissions (`600` on macOS/Linux; NTFS user-profile ACLs on Windows). On macOS, the tool reads/writes the Keychain entry that Claude Code itself uses — note that when writing credentials back, the token is briefly visible as a process argument (a limitation of the macOS `security` CLI). On Linux/Windows, credentials are read/written as a file with no process argument exposure.
 
 **Do I need to re-authenticate after switching?**
 No. Each profile stores the full OAuth tokens. Switching is instant — just restart Claude Code.

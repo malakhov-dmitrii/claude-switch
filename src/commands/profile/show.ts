@@ -7,15 +7,7 @@ import { COMPONENT_DISPLAY } from "../../lib/components";
 import { existsSync } from "fs";
 import { join } from "path";
 import type { ComponentName } from "../../lib/components";
-
-function dirSize(path: string): string {
-  try {
-    const result = Bun.spawnSync(["du", "-sh", path]);
-    return result.stdout.toString().split("\t")[0]?.trim() ?? "";
-  } catch {
-    return "";
-  }
-}
+import { dirSizeBytes, humanSize } from "../../lib/size";
 
 export function cmdProfileShow(name: string, configProfilesDirOverride?: string): void {
   if (!name) die("usage: claude-switch profile show <name>");
@@ -45,17 +37,17 @@ export function cmdProfileShow(name: string, configProfilesDirOverride?: string)
 
     if (["hooks", "plugins", "commands", "skills"].includes(comp)) {
       if (existsSync(join(profileDir, comp))) {
-        const s = dirSize(join(profileDir, comp));
-        if (s) sizeInfo = ` — ${s}`;
+        const s = humanSize(dirSizeBytes(join(profileDir, comp)));
+        sizeInfo = ` — ${s}`;
       }
     } else if (comp === "md_files" && existsSync(join(profileDir, "md_files"))) {
-      const s = dirSize(join(profileDir, "md_files"));
-      if (s) sizeInfo = ` — ${s}`;
+      const s = humanSize(dirSizeBytes(join(profileDir, "md_files")));
+      sizeInfo = ` — ${s}`;
     }
 
     process.stdout.write(`    ${GREEN}*${RESET} ${display}${DIM}${sizeInfo}${RESET}\n`);
   }
 
-  const totalSize = dirSize(profileDir);
+  const totalSize = humanSize(dirSizeBytes(profileDir));
   process.stdout.write(`  ${DIM}total size:${RESET} ${totalSize}\n`);
 }

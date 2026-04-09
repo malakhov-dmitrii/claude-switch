@@ -106,10 +106,15 @@ export function createLinuxKeychainIO(): KeychainIO {
   return createSecretToolKeychainIO(KEYCHAIN_SERVICE, keychainAccount());
 }
 
+export function createWindowsKeychainIO(): KeychainIO {
+  return createFileKeychainIO(join(claudeDir(), ".credentials.json"));
+}
+
 export function createKeychainIO(): KeychainIO {
   switch (process.platform) {
     case "darwin": return createDarwinKeychainIO();
     case "linux":  return createLinuxKeychainIO();
-    default: die(`unsupported platform: ${process.platform} — claude-switch supports macOS and Linux`);
+    case "win32":  return createWindowsKeychainIO();
+    default: die(`unsupported platform: ${process.platform} — claude-switch supports macOS, Linux, and Windows`);
   }
 }

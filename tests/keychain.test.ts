@@ -65,8 +65,10 @@ describe("createFileKeychainIO", () => {
     const io = createFileKeychainIO(credFile);
     io.setCreds('{"subscriptionType":"max"}');
     expect(existsSync(credFile)).toBe(true);
-    const mode = statSync(credFile).mode & 0o777;
-    expect(mode).toBe(0o600);
+    if (process.platform !== "win32") {
+      const mode = statSync(credFile).mode & 0o777;
+      expect(mode).toBe(0o600);
+    }
   });
 
   it("getCreds reads back what was written", () => {
@@ -95,5 +97,53 @@ describe("createFileKeychainIO", () => {
     writeFileSync(credFile, "", { mode: 0o600 });
     const io = createFileKeychainIO(credFile);
     expect(io.getCreds()).toBeNull();
+  });
+});
+
+// === createWindowsKeychainIO ===
+describe("createWindowsKeychainIO", () => {
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "claude-switch-win-test-"));
+  });
+
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("targets .credentials.json in the claude dir", () => {
+    // createWindowsKeychainIO uses claudeDir() which defaults to ~/.claude
+    // We can't override it directly, so test the underlying createFileKeychainIO
+    // with the expected path to verify the contract
+    const credFile = join(dir, ".credentials.json");
+    const io = createFileKeychainIO(credFile);
+
+    const creds = '{"accessToken":"test","expiresAt":"2026-01-01"}';
+    io.setCreds(creds);
+    expect(io.getCreds()).toBe(creds);
+  });
+
+  it("round-trips JSON credentials without corruption", () => {
+    const credFile = join(dir, ".credentials.json");
+    const io = createFileKeychainIO(credFile);
+
+    // Simulate realistic Claude Code credential blob
+    const creds = JSON.stringify({
+      claudeAiOauth: {
+        accessToken: "sk-ant-test-token-abc123",
+        refreshToken: "rt-test-refresh-xyz789",
+        expiresAt: "2026-12-31T23:59:59.000Z",
+        scopes: ["user:read", "user:write"],
+      },
+      subscriptionType: "max",
+      email: "user@example.com",
+    });
+
+    io.setCreds(creds);
+    const restored = io.getCreds();
+    expect(restored).toBe(creds);
+    // Verify JSON structure survives round-trip
+    expect(JSON.parse(restored!)).toEqual(JSON.parse(creds));
   });
 });

@@ -14,7 +14,16 @@ die()  { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 # Sanity checks
 command -v curl >/dev/null 2>&1 || die "curl is required"
 command -v git >/dev/null 2>&1 || die "git is required"
-command -v security >/dev/null 2>&1 || die "macOS Keychain (security) is required — this tool is macOS-only"
+case "$(uname -s)" in
+  Darwin)
+    command -v security >/dev/null 2>&1 || die "macOS Keychain (security) is required"
+    ;;
+  Linux)
+    ;; # keychain handled by the JS module (secret-tool or file fallback)
+  *)
+    die "unsupported OS — install manually: git clone, bun install, add alias (see README)"
+    ;;
+esac
 [[ -d "$HOME/.claude" ]] || die "~/.claude/ not found — is Claude Code installed?"
 
 # Check for bun

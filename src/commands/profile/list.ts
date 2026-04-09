@@ -2,17 +2,9 @@ import { configProfilesDir } from "../../lib/paths";
 import { readManifest } from "../../lib/manifest";
 import { BOLD, DIM, CYAN, RESET } from "../../lib/output";
 import { dim } from "../../lib/output";
-import { readdirSync, existsSync, statSync } from "fs";
+import { readdirSync, existsSync } from "fs";
 import { join } from "path";
-
-function dirSize(dir: string): string {
-  try {
-    const result = Bun.spawnSync(["du", "-sh", dir]);
-    return result.stdout.toString().split("\t")[0]?.trim() ?? "?";
-  } catch {
-    return "?";
-  }
-}
+import { dirSizeBytes, humanSize } from "../../lib/size";
 
 export function cmdProfileList(configProfilesDirOverride?: string): void {
   const cpDir = configProfilesDir(configProfilesDirOverride);
@@ -28,7 +20,7 @@ export function cmdProfileList(configProfilesDirOverride?: string): void {
     found = true;
 
     const manifest = readManifest(manifestPath);
-    const size = dirSize(join(cpDir, d));
+    const size = humanSize(dirSizeBytes(join(cpDir, d)));
     const boundMarker = manifest.boundAccount ? ` ${CYAN}-> ${manifest.boundAccount}${RESET}` : "";
 
     if (d.startsWith("_auto_")) {
